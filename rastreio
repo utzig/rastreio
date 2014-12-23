@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 
 from os.path import expanduser
-from HTMLParser import HTMLParser
-import urllib2
 import re
 import sys
+import requests
+
+try:
+    from html.parser import HTMLParser
+except ImportError:
+    from HTMLParser import HTMLParser
 
 """
 This class is used to parse the table data received back by the
@@ -17,6 +21,8 @@ class TableParser(HTMLParser):
         self.inside_table = False
         self.table_data = []
         self.rowspan = 1
+        self.strict = False
+        self.convert_charrefs = False
 
     def handle_starttag(self, tag, attrs):
         if tag == 'table':
@@ -54,8 +60,7 @@ Returns the html received from the page lookup
 def lookup(tracking_code):
     params = 'Z_ACTION=Search&P_TIPO=001&P_LINGUA=001&P_COD_UNI=' + tracking_code
     url = "http://websro.correios.com.br/sro_bin/txect01$.QueryList"
-    req = urllib2.Request(url, params)
-    return urllib2.urlopen(req).read()
+    return requests.post(url, params).text
 
 def pretty_print(tracking_code, html_data):
     parser = TableParser()
@@ -73,9 +78,17 @@ def pretty_print(tracking_code, html_data):
                 print('')
                 last_row = row
             if col == 0:
-                print('%s ' % (text,)),
+                if sys.version_info[0] < 3:
+                    xtext = "%s " % text
+                else:
+                    xtext = '{} '.format(text)
+                sys.stdout.write(xtext)
             else:
-                print('| %s ' % (text,)),
+                if sys.version_info[0] < 3:
+                    xtext = "| %s " % text
+                else:
+                    xtext = '| {} '.format(text)
+                sys.stdout.write(xtext)
         print('')
     else:
         print('O sistema não possui dados sobre o objeto informado.')
