@@ -7,8 +7,8 @@ de pacotes enviados para o Brasil (usando o site dos correios).
 
 Gere um arquivo ~/.rastreio.conf com um código de rastreio por linha. Exemplo:
 
-RF12345678CN
-RF98765432SG
+    RF12345678CN
+    RF98765432SG
 
 Rode o utilitário ./rastreio.
 
