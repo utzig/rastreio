@@ -78,16 +78,10 @@ def pretty_print(tracking_code, html_data):
                 print('')
                 last_row = row
             if col == 0:
-                if sys.version_info[0] < 3:
-                    xtext = "%s " % text
-                else:
-                    xtext = '{} '.format(text)
+                xtext = "%s " % text
                 sys.stdout.write(xtext)
             else:
-                if sys.version_info[0] < 3:
-                    xtext = "| %s " % text
-                else:
-                    xtext = '| {} '.format(text)
+                xtext = "| %s " % text
                 sys.stdout.write(xtext)
         print('')
     else:
