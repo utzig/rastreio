@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from os.path import expanduser
+from __future__ import unicode_literals
+import os.path
 import re
 import sys
 import requests
@@ -11,11 +12,13 @@ try:
 except ImportError:
     from HTMLParser import HTMLParser
 
-"""
-This class is used to parse the table data received back by the
-online lookup for each tracking code
-"""
+COMMENT = "^\s*#"
+
 class TableParser(HTMLParser):
+    """
+    This class is used to parse the table data received back by the
+    online lookup for each tracking code
+    """
     def __init__(self):
         HTMLParser.reset(self)
         self.inside_table = False
@@ -53,14 +56,16 @@ class TableParser(HTMLParser):
                 value = (self.current_row, self.current_col, stripped_data)
                 self.table_data.append(value)
 
-"""
-Receives the tracking code as string and does online search.
-Returns the html received from the page lookup
-"""
+
 def lookup(tracking_code):
+    """
+    Receives the tracking code as string and does online search.
+    Returns the html received from the page lookup
+    """
     params = 'Z_ACTION=Search&P_TIPO=001&P_LINGUA=001&P_COD_UNI=' + tracking_code
     url = "http://websro.correios.com.br/sro_bin/txect01$.QueryList"
     return requests.post(url, params).text
+
 
 def pretty_print(tracking_code, html_data):
     parser = TableParser()
@@ -69,9 +74,7 @@ def pretty_print(tracking_code, html_data):
     print(tracking_code + ':')
     if len(parser.table_data) > 0:
         for data in parser.table_data:
-            row = data[0]
-            col = data[1]
-            text = data[2]
+            row, col, text = data
             if row == 0: # ignoring the first row because it's header info...
                 continue
             if last_row != row:
@@ -88,16 +91,23 @@ def pretty_print(tracking_code, html_data):
         print('O sistema não possui dados sobre o objeto informado.')
     print('')
 
-config_file = expanduser("~") + "/.rastreio.conf"
-try:
-    with open(config_file) as f: lines = f.readlines()
-    f.close()
-except IOError:
-    print('Arquivo de entrada não encontrado!')
-    sys.exit()
 
-for line in lines:
-    if not re.match("^\s*#", line):
-        tracking_code = line.rstrip('\n')
-        response_html = lookup(tracking_code)
-        pretty_print(tracking_code, response_html)
+def main():
+    config_file = os.path.expanduser("~") + "/.rastreio.conf"
+    try:
+        with open(config_file) as f:
+            lines = f.readlines()
+        f.close()
+    except IOError:
+        print('Arquivo de entrada não encontrado!')
+        sys.exit()
+
+    for line in lines:
+        if not re.match(COMMENT, line):
+            tracking_code = line.rstrip('\n')
+            response_html = lookup(tracking_code)
+            pretty_print(tracking_code, response_html)
+
+
+if __name__ == "__main__":
+    main()

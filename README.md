@@ -14,7 +14,8 @@ Rode o utilitário ./rastreio.
 
 ## Requisitos
 
-* Python
+* Python 2.6, 3.x
+* requests
 
 ## TODO
 
