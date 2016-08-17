@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name = "rastreio",
-    version = "0.0.1",
+    version = "0.0.2",
     author = "Fabio Utzig",
     author_email = "utzig@utzig.org",
     description = ("Utility to track packages in the Brazilian post site"),
