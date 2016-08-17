@@ -6,6 +6,7 @@ import os.path
 import re
 import sys
 import requests
+import gevent
 
 try:
     from html.parser import HTMLParser
@@ -62,34 +63,42 @@ def lookup(tracking_code):
     Receives the tracking code as string and does online search.
     Returns the html received from the page lookup
     """
-    params = 'Z_ACTION=Search&P_TIPO=001&P_LINGUA=001&P_COD_UNI=' + tracking_code
-    url = "http://websro.correios.com.br/sro_bin/txect01$.QueryList"
-    return requests.post(url, params).text
+    params = 'Z_ACTION=Search&P_TIPO=001&P_LINGUA=001&P_COD_UNI={}'.format(tracking_code)
+    url = 'http://websro.correios.com.br/sro_bin/txect01$.QueryList'
+    return requests.post(url, params, timeout=10).text
 
 
 def pretty_print(tracking_code, html_data):
     parser = TableParser()
     parser.feed(html_data)
     last_row = 1
-    print(tracking_code + ':')
+    texts = []
+    texts.append(tracking_code + ':')
     if len(parser.table_data) > 0:
+        line = ''
         for data in parser.table_data:
             row, col, text = data
-            if row == 0: # ignoring the first row because it's header info...
+            if row == 0:  # ignoring the first row because it's header info...
                 continue
-            if last_row != row:
-                print('')
-                last_row = row
-            if col == 0:
-                xtext = "%s " % text
-                sys.stdout.write(xtext)
-            else:
-                xtext = "| %s " % text
-                sys.stdout.write(xtext)
-        print('')
+            if col != 0:
+                line += '| '
+            elif row != 1:
+                line += '\n'
+            line += '{} '.format(text)
+        texts.append(line)
     else:
-        print('O sistema não possui dados sobre o objeto informado.')
-    print('')
+        texts.append('O sistema não possui dados sobre o objeto informado.')
+    texts.append('')
+    return '\n'.join(texts)
+
+
+def get_output_for(tracking_code, outputs):
+    try:
+        response_html = lookup(tracking_code)
+        output = pretty_print(tracking_code, response_html)
+    except requests.ConnectionError as e:
+        output = '{}:\nErro de conexão ao servidor.'.format(tracking_code)
+    outputs.append(output)
 
 
 def main():
@@ -102,11 +111,17 @@ def main():
         print('Arquivo de entrada não encontrado!')
         sys.exit()
 
+    greenlets = []
+    outputs = []
     for line in lines:
         if not re.match(COMMENT, line):
             tracking_code = line.rstrip('\n')
-            response_html = lookup(tracking_code)
-            pretty_print(tracking_code, response_html)
+            greenlets.append(gevent.spawn(get_output_for, tracking_code, outputs))
+
+    # for connection errors just let requests timeout...
+    gevent.joinall(greenlets)
+    for output in outputs:
+        print(output)
 
 
 if __name__ == "__main__":
